@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Спорт-инвентарь</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <header>
+        <div class="user-login">Логин пользователя</div>
+        <div class="site-title">Спорт-инвентарь</div>
+    </header>
+
+    <main>
+        <section class="inventory">
+            <h2>Доступный инвентарь</h2>
+            <!-- <div class="controls">
+                <button id="addInventory">Добавить инвентарь</button>
+                <input type="text" id="inventoryName" placeholder="Название инвентаря">
+                <input type="number" id="inventoryQuantity" placeholder="Количество">
+            </div> -->
+            <div class="table">
+                <div class="table-header">
+                    <div>Название инвентаря</div>
+                    <div>Количество</div>
+                    <div>Состояние</div>
+                </div>
+                <div id="inventoryTable"></div>
+            </div>
+        </section>
+
+        <section class="request">
+            <h2>Создание заявок на получение инвентаря</h2>
+            <div class="controls">
+                <button id="createRequest">Создать заявку</button>
+                <input type="text" id="requestName" placeholder="Название инвентаря">
+                <input type="number" id="requestQuantity" placeholder="Количество">
+            </div>
+        </section>
+
+        <section class="tracking">
+            <h2>Отслеживание статуса заявок</h2>
+            <div class="controls">
+                <button id="addTracking">Добавить заявку</button>
+                <input type="text" id="trackingName" placeholder="Название инвентаря">
+                <input type="number" id="trackingQuantity" placeholder="Количество">
+            </div>
+            <div class="table">
+                <div class="table-header">
+                    <div>Название инвентаря</div>
+                    <div>Количество</div>
+                    <div>Статус заявки</div>
+                </div>
+                <div id="trackingTable"></div>
+            </div>
+        </section>
+    </main>
+
+    <script src="user.js"></script>
+</body>
+</html>
