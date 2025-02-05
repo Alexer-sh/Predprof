@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Профиль администратора</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f4f4f4;
+        }
+
+        .container {
+            background: #fff;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            flex-direction: column;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        h1, h2 {
+            text-align: center;
+            color: #333;
+        }
+
+        h1 {
+            margin-bottom: 20px;
+        }
+
+        h2 {
+            margin-top: 30px;
+            margin-bottom: 15px;
+            color: #555;
+        }
+
+        .profile-info, .add-user, .inventory, .purchase-planning, .requests {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: #f9f9f9;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .profile-info label, .add-user label, .inventory label, .purchase-planning label {
+            display: block;
+            margin: 10px 0;
+            color: #333;
+        }
+
+        .profile-info input, .add-user input, .inventory input, .purchase-planning input, .inventory select {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .button {
+            background-color: #00FF00; /* Зеленый цвет для кнопок добавления */
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 14px;
+            margin-top: 10px;
+            transition: background-color 0.3s ease;
+        }
+
+        .button:hover {
+            background-color: #00CC00; /* Темно-зеленый при наведении */
+        }
+
+        .user-list, .inventory-list, .purchase-list, .requests-list {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .user-item, .inventory-item, .purchase-item, .request-item {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border: 1px solid #ddd;
+        }
+
+        .user-item span, .inventory-item span, .purchase-item span, .request-item span {
+            color: #333;
+        }
+
+        .edit-button, .delete-button, .assign-button {
+            cursor: pointer;
+            color: blue;
+            text-decoration: underline;
+            margin-left: 10px;
+        }
+
+        .delete-button {
+            color: red;
+        }
+
+        .assign-button {
+            color: #007BFF;
+        }
+
+        .assign-button:hover, .edit-button:hover, .delete-button:hover {
+            text-decoration: none;
+        }
+
+        .inventory select {
+            width: auto;
+            margin-left: 10px;
+        }
+
+        .purchase-planning, .requests {
+            background: #f9f9f9;
+            padding: 15px;
+            border-radius: 8px;
+            border: 1px solid #ddd;
+        }
+
+        .purchase-planning label, .requests label {
+            display: block;
+            margin: 10px 0;
+        }
+
+        .purchase-planning input {
+            width: 100%;
+            padding: 8px;
+            margin-top: 5px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+
+        .user-item .inventory {
+            flex-grow: 1; /* Увеличиваем ширину ячейки для закрепленного инвентаря */
+            margin-right: 10px;
+            min-width: 200px; /* Минимальная ширина для ячейки */
+        }
+
+        .edit-inventory-button, .delete-inventory-button {
+            cursor: pointer;
+            color: #007BFF;
+            text-decoration: underline;
+            margin-left: 10px;
+        }
+
+        .delete-inventory-button {
+            color: red;
+        }
+
+        .edit-inventory-button:hover, .delete-inventory-button:hover {
+            text-decoration: none;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>Профиль администратора</h1>
+    <div class="profile-info">
+        <label>Имя: <input type="text" id="firstName" /></label>
+        <label>Фамилия: <input type="text" id="lastName" /></label>
+        <label>Отчество: <input type="text" id="middleName" /></label>
+        <label>Дата рождения: <input type="date" id="birthDate" /></label>
+        <label>Почта: <input type="email" id="email" /></label>
+        <label>Номер телефона: <input type="tel" id="phone" /></label>
+    </div>
+
+    <h2>Добавить пользователя</h2>
+    <div class="add-user">
+        <label>Имя пользователя: <input type="text" id="userFirstName" /></label>
+        <label>Фамилия пользователя: <input type="text" id="userLastName" /></label>
+        <label>Дата рождения пользователя: <input type="date" id="userBirthDate" /></label>
+        <button class="button" onclick="addUser()">Добавить пользователя</button>
+    </div>
+
+    <h2>Список пользователей</h2>
+    <div class="user-list" id="userList">
+        <!-- Здесь будут добавляться пользователи -->
+    </div>
+
+    <h2>Инвентарь</h2>
+    <div class="inventory">
+        <label>Добавить инвентарь: 
+            <input type="text" id="inventoryName" placeholder="Название инвентаря" />
+            <input type="number" id="inventoryQuantity" placeholder="Количество" min="1" />
+            <select id="inventoryCondition">
+                <option value="Новый">Новый</option>
+                <option value="Б/У">Б/У</option>
+                <option value="Требует ремонта">Требует ремонта</option>
+            </select>
+            <button class="button" onclick="addInventory()">Добавить</button>
+        </label>
+    </div>
+
+    <h2>Доступный инвентарь</h2>
+    <div class="inventory-list" id="inventoryList">
+        <!-- Здесь будет добавляться инвентарь -->
+    </div>
+
+    <h2>Планирование покупок</h2>
+    <div class="purchase-planning">
+        <label>Товар: <input type="text" id="purchaseItem" placeholder="Название товара" /></label>
+        <label>Поставщик: <input type="text" id="purchaseSupplier" placeholder="Поставщик" /></label>
+        <label>Количество: <input type="number" id="purchaseQuantity" placeholder="Количество" min="1" /></label>
+        <button class="button" onclick="addPurchase()">Добавить в план</button>
+    </div>
+
+    <h2>План покупок</h2>
+    <div class="purchase-list" id="purchaseList">
+        <!-- Здесь будет добавляться план покупок -->
+    </div>
+
+    <h2>Запросы</h2>
+    <div class="requests">
+        <div class="requests-list" id="requestsList">
+            <!-- Здесь будут добавляться запросы -->
+        </div>
+    </div>
+</div>
+
+<script src="/admin.js"></script>
+
+</body>
+</html>
