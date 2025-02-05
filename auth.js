@@ -26,12 +26,40 @@ signupSubmitButton.addEventListener('click', (event) => {
 });
 
 // Отправка данных входа
-signinSubmitButton.addEventListener('click', (event) => {
-	event.preventDefault(); // Предотвращаем стандартное поведение кнопки
+signinSubmitButton.addEventListener('click', async (event) => {
+    event.preventDefault(); // Останавливаем стандартное поведение кнопки
 
-	// Собираем данные из формы входа
-	const data = getFormData('.sign-in-container');
-	sendMessage('/signin', data); // Отправляем данные на сервер
+    const data = getFormData('.sign-in-container'); // Получаем данные формы
+    console.log("Отправляемые данные:", data); // Логируем для проверки
+
+    // Преобразуем объект в нужный формат
+    const requestData = {
+        email: data['signin-email'],
+        password: data['signin-password']
+    };
+
+    if (!requestData.email || !requestData.password) {
+        alert("Введите почту и пароль!");
+        return;
+    }
+    console.log("Отправка данных на сервер:", requestData);
+
+    sendMessage('/signin', requestData)
+        .then(result => {
+            console.log("Ответ от сервера:", result); // Лог ответа для проверки
+
+            if (result.role === "admin") {
+                window.location.href = "admin.html"; // Переход в админку
+            } else if (result.role === "user") {
+                window.location.href = "user.html"; // Переход в личный кабинет
+            } else {
+                alert("Ошибка: сервер вернул некорректный ответ.");
+            }
+        })
+        .catch(error => {
+            console.error("Ошибка авторизации:", error);
+            alert("Ошибка при входе. Проверьте логин и пароль.");
+        });
 });
 
 // Функция для получения данных формы
@@ -57,23 +85,15 @@ function getFormData(selector) {
 
 // Функция для отправки данных на сервер
 async function sendMessage(endpoint, data) {
-	try {
-		const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify(data),
-		});
+    const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+    });
 
-		if (!response.ok) {
-			throw new Error(`HTTP error! Status: ${response.status}`);
-		}
+    if (!response.ok) {
+        throw new Error(`HTTP error! Status: ${response.status}`);
+    }
 
-		const result = await response.json();
-		console.log('Server response:', result);
-	} catch (error) {
-		console.error('Error:', error.message);
-		alert('Произошла ошибка при отправке данных. Попробуйте снова.');
-	}
+    return await response.json();
 }

@@ -38,21 +38,19 @@ def signup():
 
 @app.route("/signin", methods=["POST"])
 def signin():
-    data = request.get_json()
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
+    data = request.json
+    email = data.get("email")
+    password = data.get("password")
 
-    email = data.get("signin-email")
-    password = data.get("signin-password")
+    users = {
+        "admin@example.com": {"password": "admin123", "role": "admin"},
+        "user@example.com": {"password": "user123", "role": "user"}
+    }
 
-    print(f"Received signin data: email={email}, password={password}")
-    print(data)
-    if not email or not password:
-        return jsonify({"error": "Missing fields"}), 400
-
-
-    return jsonify({"message": "Login successful"})
-
+    if email in users and users[email]["password"] == password:
+        return jsonify({"message": "Login successful", "role": users[email]["role"]}), 200
+    else:
+        return jsonify({"error": "Invalid credentials"}), 401
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000)
