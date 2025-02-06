@@ -17,12 +17,33 @@ signInButton.addEventListener('click', () => {
 });
 
 // Отправка данных регистрации
-signupSubmitButton.addEventListener('click', (event) => {
-	event.preventDefault(); // Предотвращаем стандартное поведение кнопки
+signupSubmitButton.addEventListener('click', async (event) => {
+     event.preventDefault();
 
-	// Собираем данные из формы регистрации
-	const data = getFormData('.sign-up-container');
-	sendMessage('/signup', data); // Отправляем данные на сервер
+    const data = getFormData('.sign-up-container');
+
+    const requestData = {
+        last_name: data['signup-lastname'],
+        first_name: data['signup-firstname'],
+        email: data['signup-email'],
+        password: data['signup-password']
+    };
+
+    if (!requestData.last_name || !requestData.first_name || !requestData.email || !requestData.password) {
+        alert("Заполните все поля!");
+        return;
+    }
+
+    sendMessage('/signup', requestData)
+        .then(result => {
+            console.log("Ответ от сервера:", result);
+            alert("Регистрация успешна!");
+            window.location.href = "auth.html";
+        })
+        .catch(error => {
+            console.error("Ошибка регистрации:", error);
+            alert("Ошибка при регистрации. Попробуйте снова.");
+        });
 });
 
 // Отправка данных входа

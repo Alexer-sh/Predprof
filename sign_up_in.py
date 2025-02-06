@@ -19,51 +19,61 @@ def serve_static(path):
 
 
 # Маршруты
-@app.route("/signup", methods=["POST"])
+users_db = {}
+users_db["admin@mail.ru"] = {
+        "last_name": "Гойда",
+        "first_name": "Иван",
+        "password": "admin123",
+        "role": "admin"
+    }
+@app.route('/signup', methods=['POST'])
 def signup():
     data = request.json
-    print(data)
-    if not data:
-        return jsonify({"error": "No data provided"}), 400
+    last_name = data.get("last_name")
+    first_name = data.get("first_name")
+    email = data.get("email")
+    password = data.get("password")
 
-    username = data.get("signup-username")
-    email = data.get("signup-email")
-    password = data.get("signup-password")
+    if not last_name or not first_name or not email or not password:
+        return jsonify({"error": "Заполните все поля"}), 400
 
-    if not username or not email or not password:
-        return jsonify({"error": "Missing fields"}), 400
+    if email in users_db:
+        return jsonify({"error": "Эта почта уже зарегистрирована"}), 409  # 409 Conflict
 
-    print(f"Received signup data: {data}")
-    return jsonify({"message": "Registration successful"})
+    # Сохраняем пользователя в "базе данных"
+    users_db[email] = {
+        "last_name": last_name,
+        "first_name": first_name,
+        "password": password,
+        "role": "user"  # Все новые пользователи — обычные юзеры
+    }
 
-@app.route("/signin", methods=["POST"])
+    print(f"Новый пользователь: {first_name} {last_name} ({email})")
+    return jsonify({"message": "Регистрация успешна"}), 200
+
+@app.route('/signin', methods=['POST'])
 def signin():
     data = request.json
     email = data.get("email")
     password = data.get("password")
 
-    users = {
-        "admin@example.com": {"password": "admin123", "role": "admin"},
-        "user@example.com": {"password": "user123", "role": "user"}
-    }
+    if not email or not password:
+        return jsonify({"error": "Введите почту и пароль"}), 400
 
-    if email in users and users[email]["password"] == password:
-        return jsonify({"message": "Login successful", "role": users[email]["role"]}), 200
-    else:
-        return jsonify({"error": "Invalid credentials"}), 401
+    user = users_db.get(email)
 
-# Временная база пользователей (замени на БД)
-users = [
-    {"id": 1, "first_name": "Евреев", "last_name": "Сжигатель", "birth_date": "3000-00-00"},
-    {"id": 2, "first_name": "Ясосу", "last_name": "Бибу", "birth_date": "1488-00-00"}
-]
+    if not user or user["password"] != password:
+        return jsonify({"error": "Неверные учетные данные"}), 401
 
-# Получение списка пользователей
+    print(f"Пользователь вошел: {email}")
+    return jsonify({"message": "Вход успешен", "role": user["role"]}), 200
+
 @app.route('/users', methods=['GET'])
 def get_users():
-    return jsonify(users)
+    return jsonify(users_db)
 
-# Добавление нового пользователя
+#Рега переехала в авторизацию и админу больше не надо пользователей регать
+"""     
 @app.route('/users', methods=['POST'])
 def add_user():
     data = request.json
@@ -71,15 +81,15 @@ def add_user():
         return jsonify({"error": "Некорректные данные"}), 400
 
     new_user = {
-        "id": len(users) + 1,
+        "id": len(users_db) + 1,
         "first_name": data["first_name"],
         "last_name": data["last_name"],
         "birth_date": data["birth_date"]
     }
-    users.append(new_user)
+    users_db.append(new_user)
     print(new_user)
     return jsonify({"message": "Пользователь добавлен", "user": new_user}), 201
-
+"""
 free_inventory = [
     {"id": 1, "name": "Мячи", "quantity": 10, "condition": "Новый"},
     {"id": 2, "name": "Ракетки", "quantity": 5, "condition": "Б/У"}
