@@ -94,17 +94,22 @@ def get_free_inventory():
 @app.route('/free-inventory', methods=['POST'])
 def add_free_inventory():
     data = request.json
-    if not data or "name" not in data or "quantity" not in data or "condition" not in data:
+    name = data.get("name")
+    quantity = int(data.get("quantity"))
+    condition = data.get("condition")
+
+    if not name or quantity <= 0 or not condition:
         return jsonify({"error": "Некорректные данные"}), 400
 
-    new_item = {
-        "id": len(free_inventory) + 1,
-        "name": data["name"],
-        "quantity": data["quantity"],
-        "condition": data["condition"]
-    }
-    free_inventory.append(new_item)
-    return jsonify({"message": "Инвентарь добавлен", "item": new_item}), 201
+    # Проверяем, есть ли уже такой предмет в нужном состоянии
+    existing_item = next((item for item in free_inventory if item["name"] == name and item["condition"] == condition), None)
+
+    if existing_item:
+        existing_item["quantity"] += quantity  # Если есть, увеличиваем количество
+    else:
+        free_inventory.append({"id": len(free_inventory) + 1, "name": name, "quantity": quantity, "condition": condition})
+
+    return jsonify({"message": "Инвентарь обновлён"}), 200
 
 # Удаление инвентаря
 @app.route('/free-inventory/<int:item_id>', methods=['DELETE'])
@@ -119,22 +124,26 @@ def assign_inventory():
     user_id = int(data.get("user_id"))
     item_id = int(data.get("item_id"))
     quantity = int(data.get("quantity"))
+    condition = data.get("condition")
 
     user = next((u for u in users if u["id"] == user_id), None)
-    item = next((i for i in free_inventory if i["id"] == item_id), None)
+    item = next((i for i in free_inventory if i["id"] == item_id and i["condition"] == condition), None)
 
     if not user or not item or quantity <= 0 or item["quantity"] < quantity:
         return jsonify({"error": "Неверные данные"}), 400
 
-    # Проверяем, есть ли у пользователя inventory. Если нет, создаём пустой список
     if "inventory" not in user:
         user["inventory"] = []
 
-    # Добавляем инвентарь пользователю
-    user["inventory"].append({"name": item["name"], "quantity": quantity})
+    user["inventory"].append({
+        "name": item["name"],
+        "quantity": quantity,
+        "condition": condition
+    })
     item["quantity"] -= quantity
 
     return jsonify({"message": "Инвентарь закреплён"}), 200
+
 
 @app.route('/edit-assigned-inventory', methods=['POST'])
 def edit_assigned_inventory():
