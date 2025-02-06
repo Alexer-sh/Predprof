@@ -4,7 +4,7 @@ import os
 
 app = Flask(__name__, static_folder=".")
 CORS(app)  # Включение CORS для всех маршрутов
-
+purchase_requests = []
 # Логирование всех запросов
 @app.before_request
 def log_requests():
@@ -213,6 +213,42 @@ def remove_assigned_inventory():
         free_inventory.append({"id": len(free_inventory) + 1, "name": item_name, "quantity": quantity, "condition": "Б/У"})
 
     return jsonify({"message": "Инвентарь удалён у пользователя и возвращён в свободный"}), 200
+
+@app.route('/purchase-planning', methods=['POST'])
+def add_purchase_request():
+    data = request.json
+    if not data or "item" not in data or "supplier" not in data or "quantity" not in data or "total_price" not in data:
+        return jsonify({"error": "Некорректные данные"}), 400
+
+    new_request = {
+        "id": len(purchase_requests) + 1,
+        "item": data["item"],
+        "supplier": data["supplier"],
+        "quantity": data["quantity"],
+        "total_price": data["total_price"],
+        "status": "ЗАЯВКА ПОЛУЧЕНА"
+    }
+
+    purchase_requests.append(new_request)
+    return jsonify({"message": "Заявка добавлена", "request": new_request}), 201
+
+
+@app.route('/purchase-planning', methods=['GET'])
+def get_purchase_requests():
+    return jsonify(purchase_requests)
+
+@app.route('/update-purchase-status', methods=['POST'])
+def update_purchase_status():
+    data = request.json
+    purchase_id = int(data.get("id"))
+    new_status = data.get("status")
+
+    request_item = next((p for p in purchase_requests if p["id"] == purchase_id), None)
+    if not request_item:
+        return jsonify({"error": "Заявка не найдена"}), 404
+
+    request_item["status"] = new_status
+    return jsonify({"message": "Статус обновлён"}), 200
 
 
 if __name__ == "__main__":

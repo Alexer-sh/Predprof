@@ -508,5 +508,97 @@ async function deleteInventory(id) {
 async function updateFreeInventory() {
     await fetchFreeInventory();
 }
+document.addEventListener("DOMContentLoaded", fetchPurchases);
 
+async function fetchPurchases() {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/purchase-planning");
+        if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+
+        const purchases = await response.json();
+        renderPurchaseList(purchases);
+    } catch (error) {
+        console.error("Ошибка загрузки заявок:", error);
+    }
+}
+
+function renderPurchaseList(purchases) {
+    const purchaseList = document.getElementById("purchaseList");
+    purchaseList.innerHTML = ""; // Очищаем перед обновлением
+
+    purchases.forEach(purchase => {
+        const purchaseItem = document.createElement("div");
+        purchaseItem.className = "purchase-item";
+        purchaseItem.setAttribute("data-id", purchase.id);
+        purchaseItem.innerHTML = `
+            <span>${purchase.item} - ${purchase.supplier} (${purchase.quantity} шт.,${purchase.total_price} руб)</span>
+            <select class="status-select" onchange="updatePurchaseStatus(${purchase.id}, this.value)">
+                <option value="ЗАЯВКА ПОЛУЧЕНА" ${purchase.status === "ЗАЯВКА ПОЛУЧЕНА" ? "selected" : ""}>ЗАЯВКА ПОЛУЧЕНА</option>
+                <option value="ОДОБРЕНО" ${purchase.status === "ОДОБРЕНО" ? "selected" : ""}>ОДОБРЕНО</option>
+                <option value="ОТКЛОНЕНО" ${purchase.status === "ОТКЛОНЕНО" ? "selected" : ""}>ОТКЛОНЕНО</option>
+            </select>
+        `;
+
+        purchaseList.appendChild(purchaseItem);
+    });
+}
+
+
+
+async function addPurchase() {
+    const purchaseItem = document.getElementById("purchaseItem").value;
+    const purchaseSupplier = document.getElementById("purchaseSupplier").value;
+    const purchaseQuantity = parseInt(document.getElementById("purchaseQuantity").value);
+    const purchaseTotalPrice = parseFloat(document.getElementById("purchaseTotalPrice").value);
+
+    if (!purchaseItem || !purchaseSupplier || isNaN(purchaseQuantity) || purchaseQuantity <= 0 || isNaN(purchaseTotalPrice) || purchaseTotalPrice <= 0) {
+        alert("Заполните все поля корректно.");
+        return;
+    }
+
+    const newPurchase = {
+        item: purchaseItem,
+        supplier: purchaseSupplier,
+        quantity: purchaseQuantity,
+        total_price: purchaseTotalPrice
+    };
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/purchase-planning", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newPurchase),
+        });
+
+        if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+
+        alert("Заявка отправлена!");
+        fetchPurchases(); // Обновляем список
+        document.getElementById("purchaseItem").value = "";
+        document.getElementById("purchaseSupplier").value = "";
+        document.getElementById("purchaseQuantity").value = "";
+        document.getElementById("purchaseTotalPrice").value = "";
+    } catch (error) {
+        console.error("Ошибка при добавлении заявки:", error);
+        alert("Ошибка при добавлении заявки.");
+    }
+}
+
+
+async function updatePurchaseStatus(purchaseId, newStatus) {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/update-purchase-status", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ id: purchaseId, status: newStatus }),
+        });
+
+        if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
+
+        alert("Статус заявки обновлён!");
+    } catch (error) {
+        console.error("Ошибка при обновлении статуса заявки:", error);
+        alert("Ошибка при обновлении статуса.");
+    }
+}
 
