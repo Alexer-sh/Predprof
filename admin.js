@@ -3,92 +3,224 @@ const inventory = {};
 const purchases = [];
 const requests = [];
 
-function addUser() {
+document.addEventListener("DOMContentLoaded", fetchUsers); // Загружаем пользователей при загрузке страницы
+
+// Получение списка пользователей с сервера
+async function fetchUsers() {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/users");
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        const users = await response.json();
+        renderUserList(users); // Отображаем пользователей
+    } catch (error) {
+        console.error("Ошибка загрузки пользователей:", error);
+    }
+}
+
+// Отображение списка пользователей
+function renderUserList(users) {
+    const userList = document.getElementById("userList");
+    userList.innerHTML = ""; // Очищаем список перед обновлением
+
+    users.forEach(user => {
+        const userItem = document.createElement("div");
+        userItem.className = "user-item";
+        userItem.setAttribute("data-id", user.id);
+        userItem.innerHTML = `
+            <span>${user.id}. ${user.first_name} ${user.last_name} (Дата рождения: ${user.birth_date})</span>
+            <div>
+                <span class="inventory"></span>
+                <button class="assign-button" onclick="assignInventory(this)">Закрепить инвентарь</button>
+                <span class="delete-button" onclick="deleteUser(${user.id})">Удалить</span>
+            </div>
+        `;
+        userList.appendChild(userItem);
+    });
+}
+
+// Добавление нового пользователя
+async function addUser() {
     const firstName = document.getElementById("userFirstName").value;
     const lastName = document.getElementById("userLastName").value;
     const birthDate = document.getElementById("userBirthDate").value;
 
-    if (firstName && lastName && birthDate) {
-        const userList = document.getElementById("userList");
+    if (!firstName || !lastName || !birthDate) {
+        alert("Введите все данные.");
+        return;
+    }
+
+    const newUser = { first_name: firstName, last_name: lastName, birth_date: birthDate };
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/users", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newUser),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        alert("Пользователь добавлен!");
+        fetchUsers(); // Перезагружаем список пользователей
+    } catch (error) {
+        console.error("Ошибка при добавлении пользователя:", error);
+        alert("Ошибка при добавлении пользователя.");
+    }
+}
+
+
+async function assignInventory(button) {
+    const userItem = button.closest(".user-item");
+    const userId = userItem.getAttribute("data-id");
+
+    try {
+        // Получаем список свободного инвентаря
+        const response = await fetch("http://127.0.0.1:8000/free-inventory");
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        const inventory = await response.json();
+        if (inventory.length === 0) {
+            alert("Нет доступного инвентаря для закрепления.");
+            return;
+        }
+
+        // Выбор инвентаря через prompt()
+        const inventoryNames = inventory.map(item => item.name).join(", ");
+        const selectedItemName = prompt(`Выберите инвентарь: ${inventoryNames}`);
+
+        // Проверяем, существует ли введённый предмет
+        const selectedItem = inventory.find(item => item.name === selectedItemName);
+        if (!selectedItem) {
+            alert("Такого инвентаря нет в списке.");
+            return;
+        }
+
+        // Запрашиваем количество
+        const quantity = parseInt(prompt(`Введите количество (доступно: ${selectedItem.quantity}):`));
+        if (isNaN(quantity) || quantity <= 0 || quantity > selectedItem.quantity) {
+            alert("Неверное количество.");
+            return;
+        }
+
+        // Отправляем запрос на сервер
+        const assignData = { user_id: userId, item_id: selectedItem.id, quantity };
+        const assignResponse = await fetch("http://127.0.0.1:8000/assign-inventory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(assignData),
+        });
+
+        if (!assignResponse.ok) {
+            throw new Error(`Ошибка HTTP: ${assignResponse.status}`);
+        }
+
+        alert("Инвентарь закреплён!");
+        updateFreeInventory(); // Обновляем список свободного инвентаря
+        fetchUsers(); // Обновляем список пользователей с инвентарём
+    } catch (error) {
+        console.error("Ошибка при закреплении инвентаря:", error);
+        alert("Ошибка при закреплении инвентаря.");
+    }
+}
+
+// Отображение списка пользователей
+function renderUserList(users) {
+    const userList = document.getElementById("userList");
+    userList.innerHTML = ""; // Очищаем список перед обновлением
+
+    users.forEach(user => {
         const userItem = document.createElement("div");
         userItem.className = "user-item";
-        userItem.setAttribute("data-id", userId);
+        userItem.setAttribute("data-id", user.id);
+
+        // Генерируем список закрепленного инвентаря
+        let inventoryHTML = "";
+        if (user.inventory && user.inventory.length > 0) {
+            inventoryHTML = user.inventory.map(inv =>
+                `<span>${inv.name} (${inv.quantity})
+                    <span class="edit-inventory-button" onclick="editAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity})">✏️</span>
+                    <span class="delete-inventory-button" onclick="deleteAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity})">❌</span>
+                </span>`
+            ).join("<br>");
+        } else {
+            inventoryHTML = "Нет закрепленного инвентаря";
+        }
+
         userItem.innerHTML = `
-            <span>${userId}. ${firstName} ${lastName} (Дата рождения: ${birthDate})</span>
+            <span>${user.id}. ${user.first_name} ${user.last_name} (Дата рождения: ${user.birth_date})</span>
+            <div class="inventory">${inventoryHTML}</div>
             <div>
-                <span class="inventory"></span>
                 <button class="assign-button" onclick="assignInventory(this)">Закрепить инвентарь</button>
-                <span class="delete-button" onclick="deleteUser(this)">Удалить</span>
+                <span class="delete-button" onclick="deleteUser(${user.id})">Удалить</span>
             </div>
         `;
+
         userList.appendChild(userItem);
-        userId++;
-    }
+    });
 }
 
-function assignInventory(button) {
-    const userItem = button.closest(".user-item");
-    const inventoryOptions = Object.keys(inventory);
-    const selectedInventory = prompt(`Выберите инвентарь: ${inventoryOptions.join(', ')}`);
+async function editAssignedInventory(userId, itemName, currentQuantity) {
+    const newQuantity = parseInt(prompt(`Введите новое количество для ${itemName}:`, currentQuantity));
+    if (isNaN(newQuantity) || newQuantity <= 0) {
+        alert("Некорректное количество.");
+        return;
+    }
 
-    if (selectedInventory && inventory[selectedInventory].quantity > 0) {
-        const quantityToAssign = prompt(`Введите количество инвентаря (осталось: ${inventory[selectedInventory].quantity}):`);
-        const quantity = parseInt(quantityToAssign);
+    try {
+        const response = await fetch("http://127.0.0.1:8000/edit-assigned-inventory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId, item_name: itemName, new_quantity: newQuantity }),
+        });
 
-        if (quantity > 0 && quantity <= inventory[selectedInventory].quantity) {
-            inventory[selectedInventory].quantity -= quantity;
-            const inventoryDisplay = userItem.querySelector(".inventory");
-            inventoryDisplay.innerHTML = `${selectedInventory} (${quantity})
-                <span class="edit-inventory-button" onclick="editAssignedInventory(this)">Редактировать</span>
-                <span class="delete-inventory-button" onclick="deleteAssignedInventory(this)">Удалить</span>`;
-            updateInventoryDisplay();
-        } else {
-            alert("Недостаточное количество инвентаря или неверное число.");
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
         }
-    } else {
-        alert("Этот инвентарь недоступен.");
+
+        alert("Инвентарь обновлён!");
+        fetchUsers(); // Обновляем список пользователей
+        updateFreeInventory(); // Обновляем список свободного инвентаря
+    } catch (error) {
+        console.error("Ошибка при редактировании инвентаря:", error);
+        alert("Ошибка при редактировании.");
     }
 }
 
-function editAssignedInventory(element) {
-    const userItem = element.closest(".user-item");
-    const inventoryText = userItem.querySelector(".inventory").textContent.split(" (")[0];
-    const currentQuantity = parseInt(userItem.querySelector(".inventory").textContent.match(/\d+/)[0]);
-    const newQuantity = prompt(`Введите новое количество для ${inventoryText}:`, currentQuantity);
 
-    if (newQuantity && newQuantity > 0) {
-        const inventoryName = inventoryText.trim();
-        const difference = newQuantity - currentQuantity;
+// Удаление закрепленного инвентаря у пользователя
+async function deleteAssignedInventory(userId, itemName, quantity) {
+    console.log("Отправляем на сервер:", { user_id: userId, item_name: itemName, quantity });
 
-        if (inventory[inventoryName].quantity >= difference) {
-            inventory[inventoryName].quantity -= difference;
-            userItem.querySelector(".inventory").innerHTML = `${inventoryName} (${newQuantity})
-                <span class="edit-inventory-button" onclick="editAssignedInventory(this)">Редактировать</span>
-                <span class="delete-inventory-button" onclick="deleteAssignedInventory(this)">Удалить</span>`;
-            updateInventoryDisplay();
-        } else {
-            alert("Недостаточное количество инвентаря на складе.");
+    if (!confirm(`Удалить ${itemName} (${quantity}) у пользователя?`)) return;
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/remove-assigned-inventory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ user_id: userId, item_name: itemName, quantity: quantity }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
         }
+
+        alert("Инвентарь удалён и возвращён в свободный инвентарь!");
+        fetchUsers();
+        updateFreeInventory();
+    } catch (error) {
+        console.error("Ошибка при удалении инвентаря:", error);
+        alert("Ошибка при удалении.");
     }
 }
 
-function deleteAssignedInventory(element) {
-    const userItem = element.closest(".user-item");
-    const inventoryText = userItem.querySelector(".inventory").textContent.split(" (")[0];
-    const quantity = parseInt(userItem.querySelector(".inventory").textContent.match(/\d+/)[0]);
-    const inventoryName = inventoryText.trim();
 
-    if (inventory[inventoryName]) {
-        inventory[inventoryName].quantity += quantity;
-        userItem.querySelector(".inventory").innerHTML = "";
-        updateInventoryDisplay();
-    }
-}
-
-function deleteUser(element) {
-    const userItem = element.closest(".user-item");
-    userItem.remove();
-}
 
 function addInventory() {
     const inventoryName = document.getElementById("inventoryName").value;
@@ -211,3 +343,99 @@ function deleteRequest(index) {
         updateRequestsDisplay();
     }
 }
+document.addEventListener("DOMContentLoaded", fetchFreeInventory); // Загружаем инвентарь при загрузке
+
+// Получение списка свободного инвентаря с сервера
+async function fetchFreeInventory() {
+    try {
+        const response = await fetch("http://127.0.0.1:8000/free-inventory");
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        const inventory = await response.json();
+        renderInventoryList(inventory); // Отображаем инвентарь
+    } catch (error) {
+        console.error("Ошибка загрузки инвентаря:", error);
+    }
+}
+
+// Отображение списка свободного инвентаря
+function renderInventoryList(inventory) {
+    const inventoryList = document.getElementById("inventoryList");
+    inventoryList.innerHTML = ""; // Очищаем список перед обновлением
+
+    inventory.forEach(item => {
+        const inventoryItem = document.createElement("div");
+        inventoryItem.className = "inventory-item";
+        inventoryItem.setAttribute("data-id", item.id);
+        inventoryItem.innerHTML = `
+            <span>${item.name} (Остаток: ${item.quantity}, Состояние: ${item.condition})</span>
+            <span class="delete-button" onclick="deleteInventory(${item.id})">Удалить</span>
+        `;
+        inventoryList.appendChild(inventoryItem);
+    });
+}
+
+// Добавление нового инвентаря
+async function addInventory() {
+    const inventoryName = document.getElementById("inventoryName").value;
+    const inventoryQuantity = document.getElementById("inventoryQuantity").value;
+    const inventoryCondition = document.getElementById("inventoryCondition").value;
+
+    if (!inventoryName || inventoryQuantity <= 0) {
+        alert("Введите корректные данные.");
+        return;
+    }
+
+    const newItem = {
+        name: inventoryName,
+        quantity: parseInt(inventoryQuantity),
+        condition: inventoryCondition
+    };
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/free-inventory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(newItem),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        alert("Инвентарь добавлен!");
+        fetchFreeInventory(); // Обновляем список
+    } catch (error) {
+        console.error("Ошибка при добавлении инвентаря:", error);
+        alert("Ошибка при добавлении инвентаря.");
+    }
+}
+
+// Удаление инвентаря
+async function deleteInventory(id) {
+    if (!confirm("Вы уверены, что хотите удалить этот инвентарь?")) return;
+
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/free-inventory/${id}`, {
+            method: "DELETE"
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        alert("Инвентарь удалён!");
+        fetchFreeInventory(); // Обновляем список
+    } catch (error) {
+        console.error("Ошибка при удалении инвентаря:", error);
+        alert("Ошибка при удалении.");
+    }
+}
+
+async function updateFreeInventory() {
+    await fetchFreeInventory();
+}
+
+
