@@ -74,7 +74,7 @@ signinSubmitButton.addEventListener('click', async (event) => {
             if (result.user.role === "admin") {
                 window.location.href = "admin.html"; // Переход в админку
             } else if (result.user.role === "user") {
-                window.location.href = "user.html"; // Переход в личный кабинет
+                 window.location.href = `user.html?user_id=${result.user.id}`;
             } else {
                 alert("Ошибка: сервер вернул некорректный ответ.");
             }

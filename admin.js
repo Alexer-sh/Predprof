@@ -584,3 +584,44 @@ async function updatePurchaseStatus(purchaseId, newStatus) {
     }
 }
 
+async function fetchAllRequests() {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/all-requests');
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        renderAllRequests(data.requests);
+    } catch (error) {
+        console.error("Ошибка загрузки заявок:", error);
+        alert("Ошибка при загрузке заявок.");
+    }
+}
+
+function renderAllRequests(requests) {
+    const requestTable = document.getElementById('requests-list');
+    if (!requestTable) {
+        console.error("Элемент с id 'requests-list' не найден.");
+        return;
+    }
+
+    requestTable.innerHTML = ""; // Очищаем таблицу перед обновлением
+
+    if (requests.length === 0) {
+        requestTable.innerHTML = "<div class='table-row'>Нет заявок</div>";
+        return;
+    }
+
+    requests.forEach(request => {
+        const row = document.createElement('div');
+        row.className = 'table-row';
+        row.innerHTML = `
+            <div>${request.user_name}</div>
+            <div>${request.item_name}</div>
+            <div>${request.quantity}</div>
+            <div>${request.status}</div>
+        `;
+        requestTable.appendChild(row);
+    });
+}

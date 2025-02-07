@@ -282,6 +282,68 @@ def update_purchase_status():
     request_item["status"] = new_status
     return jsonify({"message": "Статус обновлён"}), 200
 
+@app.route('/user-inventory', methods=['GET'])
+def get_user_inventory():
+    user_id = request.args.get('user_id')  # Получаем user_id из query-параметров
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
+
+    user = next((u for u in users if u["id"] == int(user_id)), None)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({"inventory": user.get("inventory", [])}), 200
+# Временная база заявок (замени на БД)
+requests = []
+
+# Маршрут для создания заявки
+@app.route('/create-request', methods=['POST'])
+def create_request():
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    user_id = data.get("user_id")
+    item_name = data.get("item_name")
+    quantity = data.get("quantity")
+
+    if not user_id or not item_name or not quantity:
+        return jsonify({"error": "Missing fields"}), 400
+
+    # Находим пользователя по user_id
+    user = next((u for u in users if u["id"] == user_id), None)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    # Создаём новую заявку
+    new_request = {
+        "id": len(requests) + 1,  # Уникальный ID заявки
+        "user_id": user_id,
+        "user_name": f"{user['first_name']} {user['last_name']}",  # Имя и фамилия заявителя
+        "item_name": item_name,
+        "quantity": quantity,
+        "status": "В обработке"  # Статус по умолчанию
+    }
+
+    requests.append(new_request)  # Добавляем заявку в список
+    print(f"New request created: {new_request}")
+
+    return jsonify({"message": "Request created", "request": new_request}), 201
+
+# Маршрут для получения заявок пользователя
+@app.route('/user-requests', methods=['GET'])
+def get_user_requests():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
+
+    user_requests = [req for req in requests if req["user_id"] == int(user_id)]
+    return jsonify({"requests": user_requests}), 200
+
+# Маршрут для получения всех заявок (для админа)
+@app.route('/all-requests', methods=['GET'])
+def get_all_requests():
+    return jsonify({"requests": requests}), 200
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000)
