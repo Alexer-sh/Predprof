@@ -5,7 +5,6 @@ const requests = [];
 
 document.addEventListener("DOMContentLoaded", fetchUsers); // Загружаем пользователей при загрузке страницы
 
-// Получение списка пользователей с сервера
 async function fetchUsers() {
     try {
         const response = await fetch("http://127.0.0.1:8000/users");
@@ -20,23 +19,42 @@ async function fetchUsers() {
     }
 }
 
-// Отображение списка пользователей
 function renderUserList(users) {
     const userList = document.getElementById("userList");
     userList.innerHTML = ""; // Очищаем список перед обновлением
 
     users.forEach(user => {
+        // Пропускаем пользователя с id = 0
+        if (user.id === 0) {
+            return; // Пропускаем итерацию
+        }
+
         const userItem = document.createElement("div");
         userItem.className = "user-item";
         userItem.setAttribute("data-id", user.id);
+
+        // Генерируем список закрепленного инвентаря
+        let inventoryHTML = "";
+        if (user.inventory && user.inventory.length > 0) {
+            inventoryHTML = user.inventory.map(inv =>
+                `<span>${inv.name} (${inv.quantity},${inv.condition})
+                    <span class="edit-inventory-button" onclick="editAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity}, '${inv.condition}')">✏️</span>
+                    <span class="delete-inventory-button" onclick="deleteAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity}, '${inv.condition}')">❌</span>
+                </span>`
+            ).join("<br>");
+        } else {
+            inventoryHTML = "Нет закрепленного инвентаря";
+        }
+
         userItem.innerHTML = `
             <span>${user.id}. ${user.first_name} ${user.last_name} (Дата рождения: ${user.birth_date})</span>
+            <div class="inventory">${inventoryHTML}</div>
             <div>
-                <span class="inventory"></span>
                 <button class="assign-button" onclick="assignInventory(this)">Закрепить инвентарь</button>
                 <span class="delete-button" onclick="deleteUser(${user.id})">Удалить</span>
             </div>
         `;
+
         userList.appendChild(userItem);
     });
 }
@@ -154,41 +172,7 @@ async function assignInventory(button) {
 }
 
 
-// Отображение списка пользователей
-function renderUserList(users) {
-    const userList = document.getElementById("userList");
-    userList.innerHTML = ""; // Очищаем список перед обновлением
 
-    users.forEach(user => {
-        const userItem = document.createElement("div");
-        userItem.className = "user-item";
-        userItem.setAttribute("data-id", user.id);
-
-        // Генерируем список закрепленного инвентаря
-        let inventoryHTML = "";
-        if (user.inventory && user.inventory.length > 0) {
-            inventoryHTML = user.inventory.map(inv =>
-                `<span>${inv.name} (${inv.quantity},${inv.condition})
-                    <span class="edit-inventory-button" onclick="editAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity}, '${inv.condition}')">✏️</span>
-                    <span class="delete-inventory-button" onclick="deleteAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity}, '${inv.condition}')">❌</span>
-                </span>`
-            ).join("<br>");
-        } else {
-            inventoryHTML = "Нет закрепленного инвентаря";
-        }
-
-        userItem.innerHTML = `
-            <span>${user.id}. ${user.first_name} ${user.last_name} (Дата рождения: ${user.birth_date})</span>
-            <div class="inventory">${inventoryHTML}</div>
-            <div>
-                <button class="assign-button" onclick="assignInventory(this)">Закрепить инвентарь</button>
-                <span class="delete-button" onclick="deleteUser(${user.id})">Удалить</span>
-            </div>
-        `;
-
-        userList.appendChild(userItem);
-    });
-}
 
 async function editAssignedInventory(userId, itemName, currentQuantity, condition) {
     if (!condition) {
@@ -222,7 +206,6 @@ async function editAssignedInventory(userId, itemName, currentQuantity, conditio
 
 
 
-// Удаление закрепленного инвентаря у пользователя
 async function deleteAssignedInventory(userId, itemName, quantity) {
     console.log("Отправляем на сервер:", { user_id: userId, item_name: itemName, quantity });
 
@@ -247,7 +230,6 @@ async function deleteAssignedInventory(userId, itemName, quantity) {
         alert("Ошибка при удалении.");
     }
 }
-
 
 
 async function addInventory() {

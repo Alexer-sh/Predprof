@@ -17,14 +17,36 @@ signInButton.addEventListener('click', () => {
 });
 
 // Отправка данных регистрации
-signupSubmitButton.addEventListener('click', (event) => {
-	event.preventDefault(); // Предотвращаем стандартное поведение кнопки
+// Отправка данных регистрации
+// Отправка данных регистрации
+signupSubmitButton.addEventListener('click', async (event) => {
+    event.preventDefault();
 
-	// Собираем данные из формы регистрации
-	const data = getFormData('.sign-up-container');
-	sendMessage('/signup', data); // Отправляем данные на сервер
+    const data = getFormData('.sign-up-container');
+
+    const requestData = {
+        "first_name": data['signup-firstname'],  // Имя
+        "last_name": data['signup-lastname'],    // Фамилия
+        "email": data['signup-email'],           // Email
+        "password": data['signup-password']      // Пароль
+    };
+
+    if (!requestData["first_name"] || !requestData["last_name"] || !requestData["email"] || !requestData["password"]) {
+        alert("Заполните все поля!");
+        return;
+    }
+
+    sendMessage('/signup', requestData)
+        .then(result => {
+            console.log("Ответ от сервера:", result);
+            alert("Регистрация успешна!");
+            window.location.href = "auth.html";  // Перенаправляем на страницу авторизации
+        })
+        .catch(error => {
+            console.error("Ошибка регистрации:", error);
+            alert("Ошибка при регистрации. Попробуйте снова.");
+        });
 });
-
 // Отправка данных входа
 signinSubmitButton.addEventListener('click', async (event) => {
     event.preventDefault(); // Останавливаем стандартное поведение кнопки
@@ -42,15 +64,16 @@ signinSubmitButton.addEventListener('click', async (event) => {
         alert("Введите почту и пароль!");
         return;
     }
+
     console.log("Отправка данных на сервер:", requestData);
 
     sendMessage('/signin', requestData)
         .then(result => {
             console.log("Ответ от сервера:", result); // Лог ответа для проверки
 
-            if (result.role === "admin") {
+            if (result.user.role === "admin") {
                 window.location.href = "admin.html"; // Переход в админку
-            } else if (result.role === "user") {
+            } else if (result.user.role === "user") {
                 window.location.href = "user.html"; // Переход в личный кабинет
             } else {
                 alert("Ошибка: сервер вернул некорректный ответ.");
@@ -74,15 +97,9 @@ function getFormData(selector) {
         }
     });
 
-    const checkbox = form.querySelector('#signin-admin');
-    if (checkbox) {
-        data['admin'] = checkbox.checked;
-    }
-
     console.log("Form data:", data);  // Логируем данные перед отправкой
     return data;
 }
-
 // Функция для отправки данных на сервер
 async function sendMessage(endpoint, data) {
     const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
