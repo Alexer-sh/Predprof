@@ -584,6 +584,12 @@ async function updatePurchaseStatus(purchaseId, newStatus) {
     }
 }
 
+document.addEventListener("DOMContentLoaded", function () {
+    fetchAllRequests();
+});
+
+document.getElementById('refresh-requests').addEventListener('click', fetchAllRequests);
+
 async function fetchAllRequests() {
     try {
         const response = await fetch('http://127.0.0.1:8000/all-requests');
@@ -600,9 +606,9 @@ async function fetchAllRequests() {
 }
 
 function renderAllRequests(requests) {
-    const requestTable = document.getElementById('requests-list');
+    const requestTable = document.getElementById('requestTable');
     if (!requestTable) {
-        console.error("Элемент с id 'requests-list' не найден.");
+        console.error("Элемент с id 'requestTable' не найден.");
         return;
     }
 
@@ -617,11 +623,51 @@ function renderAllRequests(requests) {
         const row = document.createElement('div');
         row.className = 'table-row';
         row.innerHTML = `
-            <div>${request.user_name}</div>
-            <div>${request.item_name}</div>
-            <div>${request.quantity}</div>
-            <div>${request.status}</div>
+            <div class="table-cell">${request.user_name}</div>
+            <div class="table-cell">${request.item_name}</div>
+            <div class="table-cell">${request.quantity}</div>
+            <div class="table-cell">
+                <select class="status-select" data-request-id="${request.id}">
+                    <option value="В обработке" ${request.status === "В обработке" ? "selected" : ""}>В обработке</option>
+                    <option value="Одобрено" ${request.status === "Одобрено" ? "selected" : ""}>Одобрено</option>
+                    <option value="Отклонено" ${request.status === "Отклонено" ? "selected" : ""}>Отклонено</option>
+                </select>
+            </div>
+            <div class="table-cell">
+                <button class="update-status" data-request-id="${request.id}">Сохранить</button>
+            </div>
         `;
         requestTable.appendChild(row);
     });
+
+    // Подключаем обработчики изменения статуса
+    document.querySelectorAll(".update-status").forEach(button => {
+        button.addEventListener("click", function () {
+            const requestId = this.getAttribute("data-request-id");
+            const newStatus = document.querySelector(`.status-select[data-request-id="${requestId}"]`).value;
+            updateRequestStatus(requestId, newStatus);
+        });
+    });
+}
+async function updateRequestStatus(requestId, newStatus) {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/update-request-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                request_id: parseInt(requestId),
+                new_status: newStatus
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        alert("Статус заявки обновлён!");
+        fetchAllRequests(); // Обновляем таблицу заявок
+    } catch (error) {
+        console.error("Ошибка при обновлении статуса заявки:", error);
+        alert("Ошибка при обновлении статуса заявки.");
+    }
 }

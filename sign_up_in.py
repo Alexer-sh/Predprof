@@ -345,5 +345,24 @@ def get_user_requests():
 def get_all_requests():
     return jsonify({"requests": requests}), 200
 
+@app.route('/update-request-status', methods=['POST'])
+def update_request_status():
+    data = request.json
+    request_id = data.get("request_id")
+    new_status = data.get("new_status")
+
+    if request_id is None or new_status not in ["В обработке", "Одобрено", "Отклонено"]:
+        return jsonify({"error": "Неверные данные"}), 400
+
+    request_item = next((req for req in requests if req["id"] == int(request_id)), None)
+    if not request_item:
+        return jsonify({"error": "Заявка не найдена"}), 404
+
+    request_item["status"] = new_status
+    print(f"Статус заявки {request_id} обновлён: {new_status}")
+
+    return jsonify({"message": "Статус заявки обновлён"}), 200
+
+
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000)
