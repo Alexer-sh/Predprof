@@ -189,22 +189,9 @@
 
 <div class="container">
     <h1>Профиль администратора</h1>
-    <div class="profile-info">
-        <label>Имя: <input type="text" id="firstName" /></label>
-        <label>Фамилия: <input type="text" id="lastName" /></label>
-        <label>Отчество: <input type="text" id="middleName" /></label>
-        <label>Дата рождения: <input type="date" id="birthDate" /></label>
-        <label>Почта: <input type="email" id="email" /></label>
-        <label>Номер телефона: <input type="tel" id="phone" /></label>
-    </div>
+    <h2 id="adminWelcome">Добро пожаловать, Админ</h2>
 
-    <h2>Добавить пользователя</h2>
-    <div class="add-user">
-        <label>Имя пользователя: <input type="text" id="userFirstName" /></label>
-        <label>Фамилия пользователя: <input type="text" id="userLastName" /></label>
-        <label>Дата рождения пользователя: <input type="date" id="userBirthDate" /></label>
-        <button class="button" onclick="addUser()">Добавить пользователя</button>
-    </div>
+
 
     <h2>Список пользователей</h2>
     <div class="user-list" id="userList">
@@ -230,7 +217,7 @@
         <!-- Здесь будет добавляться инвентарь -->
     </div>
 
-    <h2>Планирование покупок</h2>
+    <h2>Планирование закупок</h2>
     <div class="purchase-planning">
         <label>Товар: <input type="text" id="purchaseItem" placeholder="Название товара" /></label>
         <label>Поставщик: <input type="text" id="purchaseSupplier" placeholder="Поставщик" /></label>
@@ -239,7 +226,7 @@
         <button class="button" onclick="addPurchase()">Добавить в план</button>
     </div>
 
-    <h2>План покупок</h2>
+    <h2>План закупок</h2>
     <div class="purchase-list" id="purchaseList">
         <!-- Здесь будет добавляться план покупок -->
     </div>

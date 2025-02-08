@@ -89,7 +89,3 @@ def new_admin(data:New_user,credentials: Annotated[HTTPBasicCredentials, Depends
     except sqlite3.Error as error:
         print("Ошибка при работе с SQLite", error)
         return {"message": "this user already exist"}
-
-#@sport.get("/get_inventory")
-#def get_inventory(credentials: Annotated[HTTPBasicCredentials, Depends(sec)], cursor: sqlite3.Cursor = Depends(get_db)):
-#    return {"message": get_free_inventory(cursor)}

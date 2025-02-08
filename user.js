@@ -1,4 +1,3 @@
-// Функция для получения инвентаря пользователя
 async function fetchUserInventory(userId) {
     try {
         const response = await fetch(`http://127.0.0.1:8000/user-inventory?user_id=${userId}`);
@@ -8,17 +7,16 @@ async function fetchUserInventory(userId) {
 
         const data = await response.json();
         console.log(data)
-        renderUserInventory(data.inventory); // Отображаем инвентарь
+        renderUserInventory(data.inventory);
     } catch (error) {
         console.error("Ошибка загрузки инвентаря:", error);
         alert("Ошибка при загрузке инвентаря.");
     }
 }
 
-// Функция для отображения инвентаря
 function renderUserInventory(inventory) {
     const inventoryTable = document.getElementById("inventoryTable");
-    inventoryTable.innerHTML = ""; // Очищаем таблицу перед обновлением
+    inventoryTable.innerHTML = "";
 
     if (inventory.length === 0) {
         inventoryTable.innerHTML = "<div class='table-row'>Нет закреплённого инвентаря</div>";
@@ -56,15 +54,11 @@ document.addEventListener("DOMContentLoaded", function () {
         alert("User ID not found in URL.");
         return;
     }
-
-    // Загружаем инвентарь пользователя
     fetchUserInventory(userId);
-    // Загружаем заявки пользователя
     fetchUserRequests(userId);
 });
 
 
-// Функция для обработки создания заявки
 async function handleCreateRequest() {
     const requestNameInput = document.getElementById('requestName');
     const requestQuantityInput = document.getElementById('requestQuantity');
@@ -83,8 +77,6 @@ async function handleCreateRequest() {
     }
 
     console.log("Отправка заявки:", { name, quantity });
-
-    // Получаем user_id из URL
     const urlParams = new URLSearchParams(window.location.search);
     const userId = urlParams.get('user_id');
 
@@ -93,7 +85,6 @@ async function handleCreateRequest() {
         return;
     }
 
-    // Отправляем заявку на сервер
     try {
         const response = await fetch('http://127.0.0.1:8000/create-request', {
             method: 'POST',
@@ -121,11 +112,9 @@ async function handleCreateRequest() {
         `;
         document.getElementById('requestTable').appendChild(row);
 
-        // Очищаем поля
         requestNameInput.value = '';
         requestQuantityInput.value = '';
 
-        // Обновляем список заявок
         fetchUserRequests(userId);
     } catch (error) {
         console.error("Ошибка при создании заявки:", error);
@@ -133,7 +122,6 @@ async function handleCreateRequest() {
     }
 }
 
-// Функция для загрузки заявок пользователя
 async function fetchUserRequests(userId) {
     try {
         const response = await fetch(`http://127.0.0.1:8000/user-requests?user_id=${userId}`);
@@ -149,11 +137,10 @@ async function fetchUserRequests(userId) {
     }
 }
 
-// Функция для отображения заявок пользователя
 function renderUserRequests(requests) {
     const requestTable = document.getElementById('requestTable');
 
-    requestTable.innerHTML = ""; // Очищаем таблицу перед обновлением
+    requestTable.innerHTML = "";
 
     if (requests.length === 0) {
         requestTable.innerHTML = "<div class='table-row'>Нет заявок</div>";
