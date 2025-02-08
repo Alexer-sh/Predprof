@@ -2,34 +2,30 @@ const signUpButton = document.getElementById('signUp'); // Кнопка для �
 const signInButton = document.getElementById('signIn'); // Кнопка для переключения на вход
 const container = document.getElementById('container');
 
-// Кнопки для отправки данных на сервер
 const signupSubmitButton = document.getElementById('signup-button'); // Кнопка для отправки данных регистрации
 const signinSubmitButton = document.getElementById('signin-button'); // Кнопка для отправки данных входа
 
-// Переключение на регистрацию
 signUpButton.addEventListener('click', () => {
 	container.classList.add('right-panel-active');
 });
 
-// Переключение на вход
 signInButton.addEventListener('click', () => {
 	container.classList.remove('right-panel-active');
 });
 
-// Отправка данных регистрации
 signupSubmitButton.addEventListener('click', async (event) => {
-     event.preventDefault();
+    event.preventDefault();
 
     const data = getFormData('.sign-up-container');
 
     const requestData = {
-        last_name: data['signup-lastname'],
-        first_name: data['signup-firstname'],
-        email: data['signup-email'],
-        password: data['signup-password']
+        "first_name": data['signup-firstname'],
+        "last_name": data['signup-lastname'],
+        "email": data['signup-email'],
+        "password": data['signup-password']
     };
 
-    if (!requestData.last_name || !requestData.first_name || !requestData.email || !requestData.password) {
+    if (!requestData["first_name"] || !requestData["last_name"] || !requestData["email"] || !requestData["password"]) {
         alert("Заполните все поля!");
         return;
     }
@@ -45,15 +41,12 @@ signupSubmitButton.addEventListener('click', async (event) => {
             alert("Ошибка при регистрации. Попробуйте снова.");
         });
 });
-
-// Отправка данных входа
 signinSubmitButton.addEventListener('click', async (event) => {
-    event.preventDefault(); // Останавливаем стандартное поведение кнопки
+    event.preventDefault();
 
-    const data = getFormData('.sign-in-container'); // Получаем данные формы
-    console.log("Отправляемые данные:", data); // Логируем для проверки
+    const data = getFormData('.sign-in-container');
+    console.log("Отправляемые данные:", data);
 
-    // Преобразуем объект в нужный формат
     const requestData = {
         email: data['signin-email'],
         password: data['signin-password']
@@ -63,16 +56,16 @@ signinSubmitButton.addEventListener('click', async (event) => {
         alert("Введите почту и пароль!");
         return;
     }
+
     console.log("Отправка данных на сервер:", requestData);
 
     sendMessage('/signin', requestData)
         .then(result => {
-            console.log("Ответ от сервера:", result); // Лог ответа для проверки
 
-            if (result.role === "admin") {
-                window.location.href = "admin.html"; // Переход в админку
-            } else if (result.role === "user") {
-                window.location.href = "user.html"; // Переход в личный кабинет
+            if (result.user.role === "admin") {
+                window.location.href = `admin.html?user_id=${result.user.id}`;
+            } else if (result.user.role === "user") {
+                 window.location.href = `user.html?user_id=${result.user.id}`;
             } else {
                 alert("Ошибка: сервер вернул некорректный ответ.");
             }
@@ -83,7 +76,6 @@ signinSubmitButton.addEventListener('click', async (event) => {
         });
 });
 
-// Функция для получения данных формы
 function getFormData(selector) {
     const form = document.querySelector(`${selector} form`);
     const data = {};
@@ -94,17 +86,9 @@ function getFormData(selector) {
             data[input.id] = input.value;
         }
     });
-
-    const checkbox = form.querySelector('#signin-admin');
-    if (checkbox) {
-        data['admin'] = checkbox.checked;
-    }
-
-    console.log("Form data:", data);  // Логируем данные перед отправкой
     return data;
 }
-
-// Функция для отправки данных на сервер
+// Отправка данных на сервер
 async function sendMessage(endpoint, data) {
     const response = await fetch(`http://127.0.0.1:8000${endpoint}`, {
         method: 'POST',

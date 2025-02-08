@@ -3,9 +3,9 @@ from flask_cors import CORS
 import os
 
 app = Flask(__name__, static_folder=".")
-CORS(app)  # Включение CORS для всех маршрутов
-purchase_requests = []
-# Логирование всех запросов
+CORS(app)
+
+# Логирование запросов
 @app.before_request
 def log_requests():
     print(f"Incoming request: {request.method} {request.path}")
@@ -17,90 +17,93 @@ def serve_static(path):
         return send_from_directory(".", path)
     return jsonify({"error": "File not found"}), 404
 
-
-# Маршруты
-users_db = {}
-users_db["admin@mail.ru"] = {
-        "last_name": "Гойда",
-        "first_name": "Иван",
-        "password": "admin123",
-        "role": "admin"
-    }
-@app.route('/signup', methods=['POST'])
-def signup():
-    data = request.json
-    last_name = data.get("last_name")
-    first_name = data.get("first_name")
-    email = data.get("email")
-    password = data.get("password")
-
-    if not last_name or not first_name or not email or not password:
-        return jsonify({"error": "Заполните все поля"}), 400
-
-    if email in users_db:
-        return jsonify({"error": "Эта почта уже зарегистрирована"}), 409  # 409 Conflict
-
-    # Сохраняем пользователя в "базе данных"
-    users_db[email] = {
-        "last_name": last_name,
-        "first_name": first_name,
-        "password": password,
-        "role": "user"  # Все новые пользователи — обычные юзеры
-    }
-
-    print(f"Новый пользователь: {first_name} {last_name} ({email})")
-    return jsonify({"message": "Регистрация успешна"}), 200
-
-@app.route('/signin', methods=['POST'])
-def signin():
-    data = request.json
-    email = data.get("email")
-    password = data.get("password")
-
-    if not email or not password:
-        return jsonify({"error": "Введите почту и пароль"}), 400
-
-    user = users_db.get(email)
-
-    if not user or user["password"] != password:
-        return jsonify({"error": "Неверные учетные данные"}), 401
-
-    print(f"Пользователь вошел: {email}")
-    return jsonify({"message": "Вход успешен", "role": user["role"]}), 200
-
-@app.route('/users', methods=['GET'])
-def get_users():
-    return jsonify(users_db)
-
-#Рега переехала в авторизацию и админу больше не надо пользователей регать
-"""     
-@app.route('/users', methods=['POST'])
-def add_user():
-    data = request.json
-    if not data or "first_name" not in data or "last_name" not in data or "birth_date" not in data:
-        return jsonify({"error": "Некорректные данные"}), 400
-
-    new_user = {
-        "id": len(users_db) + 1,
-        "first_name": data["first_name"],
-        "last_name": data["last_name"],
-        "birth_date": data["birth_date"]
-    }
-    users_db.append(new_user)
-    print(new_user)
-    return jsonify({"message": "Пользователь добавлен", "user": new_user}), 201
-"""
+# Хранение данных (и так сойдёт)
+users = [
+    {"id": 0, "first_name": "Андрей", "last_name": "Денисов", "email": "admin@example.com", "password": "admin123", "role": "admin", "inventory": []},
+    {"id": 1, "first_name": "Алексей", "last_name": "Егоров", "email": "egorov@mail.ru", "password": "mephi", "role": "user", "inventory": []},
+    {"id": 2, "first_name": "Лариса", "last_name": "Беликова", "email": "user@example.com", "password": "user123", "role": "user", "inventory": []}
+]
+purchase_requests = []
 free_inventory = [
     {"id": 1, "name": "Мячи", "quantity": 10, "condition": "Новый"},
     {"id": 2, "name": "Ракетки", "quantity": 5, "condition": "Б/У"}
 ]
+requests = []
+# Маршруты
+@app.route("/signup", methods=["POST"])
+def signup():
+    data = request.json
+    print(data)
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
 
-# Получение списка свободного инвентаря
+    first_name = data.get("first_name")
+    last_name = data.get("last_name")
+    email = data.get("email")
+    password = data.get("password")
+
+    if not first_name or not last_name or not email or not password:
+        return jsonify({"error": "Missing fields"}), 400
+
+    # Есть ли такой пользователь уже
+    if any(user["email"] == email for user in users):
+        return jsonify({"error": "User with this email already exists"}), 400
+
+    # Новый пользователь
+    new_user = {
+        "id": len(users),
+        "first_name": first_name,
+        "last_name": last_name,
+        "email": email,
+        "password": password,
+        "role": "user", # Создаем только юзеров
+        "inventory": []
+    }
+    users.append(new_user)
+
+    return jsonify({"message": "Registration successful", "user": new_user}), 201
+
+@app.route("/signin", methods=["POST"])
+def signin():
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    email = data.get("email")
+    password = data.get("password")
+
+    if not email or not password:
+        return jsonify({"error": "Missing email or password"}), 400
+
+    # Ищем пользователя по email
+    user = next((u for u in users if u["email"] == email), None)
+
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    if user["password"] != password:
+        return jsonify({"error": "Invalid password"}), 401
+
+    # Возвращаем роль найденного пользователя
+    return jsonify({
+        "message": "Login successful",
+        "user": {
+            "id": user["id"],
+            "first_name": user["first_name"],
+            "last_name": user["last_name"],
+            "email": user["email"],
+            "role": user["role"]
+        }
+    }), 200
+
+@app.route('/users', methods=['GET'])
+def get_users():
+    return jsonify(users)
+
 @app.route('/free-inventory', methods=['GET'])
 def get_free_inventory():
     return jsonify(free_inventory)
 
-# Добавление нового инвентаря
 @app.route('/free-inventory', methods=['POST'])
 def add_free_inventory():
     data = request.json
@@ -115,13 +118,12 @@ def add_free_inventory():
     existing_item = next((item for item in free_inventory if item["name"] == name and item["condition"] == condition), None)
 
     if existing_item:
-        existing_item["quantity"] += quantity  # Если есть, увеличиваем количество
+        existing_item["quantity"] += quantity  # Если такой предмет уже есть, то увеличиваем количество
     else:
         free_inventory.append({"id": len(free_inventory) + 1, "name": name, "quantity": quantity, "condition": condition})
 
     return jsonify({"message": "Инвентарь обновлён"}), 200
 
-# Удаление инвентаря
 @app.route('/free-inventory/<int:item_id>', methods=['DELETE'])
 def delete_free_inventory(item_id):
     global free_inventory
@@ -153,7 +155,6 @@ def assign_inventory():
     item["quantity"] -= quantity
 
     return jsonify({"message": "Инвентарь закреплён"}), 200
-
 
 @app.route('/edit-assigned-inventory', methods=['POST'])
 def edit_assigned_inventory():
@@ -218,12 +219,11 @@ def remove_assigned_inventory():
     # Возвращаем в свободный инвентарь
     free_item = next((inv for inv in free_inventory if inv["name"] == item_name), None)
     if free_item:
-        free_item["quantity"] += quantity  # Если предмет уже есть, увеличиваем количество
+        free_item["quantity"] += quantity  # Если предмет уже есть, то увеличиваем количество
     else:
         free_inventory.append({"id": len(free_inventory) + 1, "name": item_name, "quantity": quantity, "condition": "Б/У"})
 
     return jsonify({"message": "Инвентарь удалён у пользователя и возвращён в свободный"}), 200
-
 @app.route('/purchase-planning', methods=['POST'])
 def add_purchase_request():
     data = request.json
@@ -236,7 +236,7 @@ def add_purchase_request():
         "supplier": data["supplier"],
         "quantity": data["quantity"],
         "total_price": data["total_price"],
-        "status": "ЗАЯВКА ПОЛУЧЕНА"
+        "status": "Заявка получена"
     }
 
     purchase_requests.append(new_request)
@@ -259,6 +259,97 @@ def update_purchase_status():
 
     request_item["status"] = new_status
     return jsonify({"message": "Статус обновлён"}), 200
+
+@app.route('/user-inventory', methods=['GET'])
+def get_user_inventory():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
+
+    user = next((u for u in users if u["id"] == int(user_id)), None)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    return jsonify({"inventory": user.get("inventory", [])}), 200
+
+@app.route('/create-request', methods=['POST'])
+def create_request():
+    data = request.json
+    if not data:
+        return jsonify({"error": "No data provided"}), 400
+
+    user_id = data.get("user_id")
+    item_name = data.get("item_name")
+    quantity = data.get("quantity")
+
+    if not user_id or not item_name or not quantity:
+        return jsonify({"error": "Missing fields"}), 400
+
+    # Находим пользователя по user_id
+    user = next((u for u in users if u["id"] == user_id), None)
+    if not user:
+        return jsonify({"error": "User not found"}), 404
+
+    new_request = {
+        "id": len(requests) + 1,
+        "user_id": user_id,
+        "user_name": f"{user['first_name']} {user['last_name']}",
+        "item_name": item_name,
+        "quantity": quantity,
+        "status": "В обработке"  # Статус по умолчанию
+    }
+
+    requests.append(new_request)
+    print(f"New request created: {new_request}")
+
+    return jsonify({"message": "Request created", "request": new_request}), 201
+
+@app.route('/user-requests', methods=['GET'])
+def get_user_requests():
+    user_id = request.args.get('user_id')
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
+
+    user_requests = [req for req in requests if req["user_id"] == int(user_id)]
+    return jsonify({"requests": user_requests}), 200
+
+@app.route('/all-requests', methods=['GET'])
+def get_all_requests():
+    return jsonify({"requests": requests}), 200
+
+@app.route('/update-request-status', methods=['POST'])
+def update_request_status():
+    data = request.json
+    request_id = data.get("request_id")
+    new_status = data.get("new_status")
+
+    if request_id is None or new_status not in ["В обработке", "Одобрено", "Отклонено"]:
+        return jsonify({"error": "Неверные данные"}), 400
+
+    request_item = next((req for req in requests if req["id"] == int(request_id)), None)
+    if not request_item:
+        return jsonify({"error": "Заявка не найдена"}), 404
+
+    request_item["status"] = new_status
+    print(f"Статус заявки {request_id} обновлён: {new_status}")
+
+    return jsonify({"message": "Статус заявки обновлён"}), 200
+
+@app.route('/admin-info', methods=['GET'])
+def get_admin_info():
+    user_id = request.args.get("user_id")
+
+    if not user_id:
+        return jsonify({"error": "User ID is required"}), 400
+
+    user = next((u for u in users if u["id"] == int(user_id) and u["role"] == "admin"), None)
+    if not user:
+        return jsonify({"error": "Admin not found"}), 404
+
+    return jsonify({
+        "first_name": user["first_name"],
+        "last_name": user["last_name"]
+    })
 
 
 if __name__ == "__main__":

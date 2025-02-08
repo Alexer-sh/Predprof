@@ -19,6 +19,7 @@ class User(FeaturedModel):
     @staticmethod
     def getByName(cursor: sqlite3.Cursor,username: str):
         try:
+
             cursor.execute("""SELECT * FROM Users WHERE name = ?""", ((username,)))
             return User(**cursor.fetchone())
         except TypeError as e:

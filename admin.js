@@ -3,9 +3,8 @@ const inventory = {};
 const purchases = [];
 const requests = [];
 
-document.addEventListener("DOMContentLoaded", fetchUsers); // Загружаем пользователей при загрузке страницы
+document.addEventListener("DOMContentLoaded", fetchUsers);
 
-// Получение списка пользователей с сервера
 async function fetchUsers() {
     try {
         const response = await fetch("http://127.0.0.1:8000/users");
@@ -14,63 +13,48 @@ async function fetchUsers() {
         }
 
         const users = await response.json();
-        renderUserList(users); // Отображаем пользователей
+        renderUserList(users);
     } catch (error) {
         console.error("Ошибка загрузки пользователей:", error);
     }
 }
 
-// Отображение списка пользователей
 function renderUserList(users) {
     const userList = document.getElementById("userList");
-    userList.innerHTML = ""; // Очищаем список перед обновлением
+    userList.innerHTML = "";
 
     users.forEach(user => {
+        // Пропускаем пользователя с id = 0, он админ
+        if (user.id === 0) {
+            return;
+        }
+
         const userItem = document.createElement("div");
         userItem.className = "user-item";
         userItem.setAttribute("data-id", user.id);
-        userItem.innerHTML = `
-            <span>${user.id}. ${user.first_name} ${user.last_name} (Дата рождения: ${user.birth_date})</span>
-            <div>
-                <span class="inventory"></span>
-                <button class="assign-button" onclick="assignInventory(this)">Закрепить инвентарь</button>
-                <span class="delete-button" onclick="deleteUser(${user.id})">Удалить</span>
-            </div>
-        `;
-        userList.appendChild(userItem);
-    });
-}
 
-// Добавление нового пользователя
-async function addUser() {
-    const firstName = document.getElementById("userFirstName").value;
-    const lastName = document.getElementById("userLastName").value;
-    const birthDate = document.getElementById("userBirthDate").value;
-
-    if (!firstName || !lastName || !birthDate) {
-        alert("Введите все данные.");
-        return;
-    }
-
-    const newUser = { first_name: firstName, last_name: lastName, birth_date: birthDate };
-
-    try {
-        const response = await fetch("http://127.0.0.1:8000/users", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(newUser),
-        });
-
-        if (!response.ok) {
-            throw new Error(`Ошибка HTTP: ${response.status}`);
+        let inventoryHTML = "";
+        if (user.inventory && user.inventory.length > 0) {
+            inventoryHTML = user.inventory.map(inv =>
+                `<span>${inv.name} (${inv.quantity},${inv.condition})
+                    <span class="edit-inventory-button" onclick="editAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity}, '${inv.condition}')">✏️</span>
+                    <span class="delete-inventory-button" onclick="deleteAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity}, '${inv.condition}')">❌</span>
+                </span>`
+            ).join("<br>");
+        } else {
+            inventoryHTML = "Нет закрепленного инвентаря";
         }
 
-        alert("Пользователь добавлен!");
-        fetchUsers(); // Перезагружаем список пользователей
-    } catch (error) {
-        console.error("Ошибка при добавлении пользователя:", error);
-        alert("Ошибка при добавлении пользователя.");
-    }
+        userItem.innerHTML = `
+            <span>${user.id}. ${user.first_name} ${user.last_name}</span>
+            <div class="inventory">${inventoryHTML}</div>
+            <div>
+                <button class="assign-button" onclick="assignInventory(this)">Закрепить инвентарь</button>
+            </div>
+        `;
+
+        userList.appendChild(userItem);
+    });
 }
 
 
@@ -97,7 +81,6 @@ async function assignInventory(button) {
             groupedInventory[item.name].push(item);
         });
 
-        // Выбор предмета (показываем только названия)
         const inventoryNames = Object.keys(groupedInventory).join("\n");
         const selectedItemName = prompt(`Выберите инвентарь:\n${inventoryNames}`);
 
@@ -122,7 +105,6 @@ async function assignInventory(button) {
             return;
         }
 
-        // Запрашиваем количество
         const quantity = parseInt(prompt(`Введите количество (доступно: ${selectedItem.quantity}):`));
         if (isNaN(quantity) || quantity <= 0 || quantity > selectedItem.quantity) {
             alert("Неверное количество.");
@@ -154,41 +136,7 @@ async function assignInventory(button) {
 }
 
 
-// Отображение списка пользователей
-function renderUserList(users) {
-    const userList = document.getElementById("userList");
-    userList.innerHTML = ""; // Очищаем список перед обновлением
 
-    users.forEach(user => {
-        const userItem = document.createElement("div");
-        userItem.className = "user-item";
-        userItem.setAttribute("data-id", user.id);
-
-        // Генерируем список закрепленного инвентаря
-        let inventoryHTML = "";
-        if (user.inventory && user.inventory.length > 0) {
-            inventoryHTML = user.inventory.map(inv =>
-                `<span>${inv.name} (${inv.quantity},${inv.condition})
-                    <span class="edit-inventory-button" onclick="editAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity}, '${inv.condition}')">✏️</span>
-                    <span class="delete-inventory-button" onclick="deleteAssignedInventory(${user.id}, '${inv.name}', ${inv.quantity}, '${inv.condition}')">❌</span>
-                </span>`
-            ).join("<br>");
-        } else {
-            inventoryHTML = "Нет закрепленного инвентаря";
-        }
-
-        userItem.innerHTML = `
-            <span>${user.id}. ${user.first_name} ${user.last_name} (Дата рождения: ${user.birth_date})</span>
-            <div class="inventory">${inventoryHTML}</div>
-            <div>
-                <button class="assign-button" onclick="assignInventory(this)">Закрепить инвентарь</button>
-                <span class="delete-button" onclick="deleteUser(${user.id})">Удалить</span>
-            </div>
-        `;
-
-        userList.appendChild(userItem);
-    });
-}
 
 async function editAssignedInventory(userId, itemName, currentQuantity, condition) {
     if (!condition) {
@@ -222,7 +170,6 @@ async function editAssignedInventory(userId, itemName, currentQuantity, conditio
 
 
 
-// Удаление закрепленного инвентаря у пользователя
 async function deleteAssignedInventory(userId, itemName, quantity) {
     console.log("Отправляем на сервер:", { user_id: userId, item_name: itemName, quantity });
 
@@ -247,7 +194,6 @@ async function deleteAssignedInventory(userId, itemName, quantity) {
         alert("Ошибка при удалении.");
     }
 }
-
 
 
 async function addInventory() {
@@ -281,8 +227,6 @@ async function addInventory() {
         alert("Инвентарь обновлён!");
         return;
     }
-
-    // Если предмета нет в списке, добавляем его
     const inventoryList = document.getElementById("inventoryList");
     const inventoryItem = document.createElement("div");
     inventoryItem.className = "inventory-item";
@@ -296,7 +240,6 @@ async function addInventory() {
 
     inventoryList.appendChild(inventoryItem);
 
-    // Отправляем данные на сервер
     try {
         const response = await fetch("http://127.0.0.1:8000/free-inventory", {
             method: "POST",
@@ -383,7 +326,6 @@ function updatePurchaseDisplay() {
     });
 }
 
-// Функция для добавления запросов (внешний вызов)
 function addRequest(item, quantity) {
     const request = {
         item: item,
@@ -414,9 +356,8 @@ function deleteRequest(index) {
         updateRequestsDisplay();
     }
 }
-document.addEventListener("DOMContentLoaded", fetchFreeInventory); // Загружаем инвентарь при загрузке
+document.addEventListener("DOMContentLoaded", fetchFreeInventory);
 
-// Получение списка свободного инвентаря с сервера
 async function fetchFreeInventory() {
     try {
         const response = await fetch("http://127.0.0.1:8000/free-inventory");
@@ -425,7 +366,7 @@ async function fetchFreeInventory() {
         }
 
         const inventory = await response.json();
-        renderInventoryList(inventory); // Отображаем инвентарь
+        renderInventoryList(inventory);
     } catch (error) {
         console.error("Ошибка загрузки инвентаря:", error);
     }
@@ -434,7 +375,7 @@ async function fetchFreeInventory() {
 // Отображение списка свободного инвентаря
 function renderInventoryList(inventory) {
     const inventoryList = document.getElementById("inventoryList");
-    inventoryList.innerHTML = ""; // Очищаем список перед обновлением
+    inventoryList.innerHTML = "";
 
     inventory.forEach(item => {
         const inventoryItem = document.createElement("div");
@@ -448,7 +389,6 @@ function renderInventoryList(inventory) {
     });
 }
 
-// Добавление нового инвентаря
 async function addInventory() {
     const inventoryName = document.getElementById("inventoryName").value;
     const inventoryQuantity = document.getElementById("inventoryQuantity").value;
@@ -477,7 +417,7 @@ async function addInventory() {
         }
 
         alert("Инвентарь добавлен!");
-        fetchFreeInventory(); // Обновляем список
+        fetchFreeInventory();
     } catch (error) {
         console.error("Ошибка при добавлении инвентаря:", error);
         alert("Ошибка при добавлении инвентаря.");
@@ -498,7 +438,7 @@ async function deleteInventory(id) {
         }
 
         alert("Инвентарь удалён!");
-        fetchFreeInventory(); // Обновляем список
+        fetchFreeInventory();
     } catch (error) {
         console.error("Ошибка при удалении инвентаря:", error);
         alert("Ошибка при удалении.");
@@ -524,7 +464,7 @@ async function fetchPurchases() {
 
 function renderPurchaseList(purchases) {
     const purchaseList = document.getElementById("purchaseList");
-    purchaseList.innerHTML = ""; // Очищаем перед обновлением
+    purchaseList.innerHTML = "";
 
     purchases.forEach(purchase => {
         const purchaseItem = document.createElement("div");
@@ -533,9 +473,9 @@ function renderPurchaseList(purchases) {
         purchaseItem.innerHTML = `
             <span>${purchase.item} - ${purchase.supplier} (${purchase.quantity} шт.,${purchase.total_price} руб)</span>
             <select class="status-select" onchange="updatePurchaseStatus(${purchase.id}, this.value)">
-                <option value="ЗАЯВКА ПОЛУЧЕНА" ${purchase.status === "ЗАЯВКА ПОЛУЧЕНА" ? "selected" : ""}>ЗАЯВКА ПОЛУЧЕНА</option>
-                <option value="ОДОБРЕНО" ${purchase.status === "ОДОБРЕНО" ? "selected" : ""}>ОДОБРЕНО</option>
-                <option value="ОТКЛОНЕНО" ${purchase.status === "ОТКЛОНЕНО" ? "selected" : ""}>ОТКЛОНЕНО</option>
+                <option value="В обработке" ${purchase.status === "В обработке" ? "selected" : ""}>В обработке</option>
+                <option value="Одобрено" ${purchase.status === "Одобрено" ? "selected" : ""}>Одобрено</option>
+                <option value="Отклонено" ${purchase.status === "Отклонено" ? "selected" : ""}>Отклонено</option>
             </select>
         `;
 
@@ -573,7 +513,7 @@ async function addPurchase() {
         if (!response.ok) throw new Error(`Ошибка HTTP: ${response.status}`);
 
         alert("Заявка отправлена!");
-        fetchPurchases(); // Обновляем список
+        fetchPurchases();
         document.getElementById("purchaseItem").value = "";
         document.getElementById("purchaseSupplier").value = "";
         document.getElementById("purchaseQuantity").value = "";
@@ -602,3 +542,113 @@ async function updatePurchaseStatus(purchaseId, newStatus) {
     }
 }
 
+document.addEventListener("DOMContentLoaded", function () {
+    fetchAllRequests();
+    fetchAdminInfo();
+});
+
+document.getElementById('refresh-requests').addEventListener('click', fetchAllRequests);
+
+async function fetchAllRequests() {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/all-requests');
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        renderAllRequests(data.requests);
+    } catch (error) {
+        console.error("Ошибка загрузки заявок:", error);
+        alert("Ошибка при загрузке заявок.");
+    }
+}
+
+function renderAllRequests(requests) {
+    const requestTable = document.getElementById('requestTable');
+    if (!requestTable) {
+        console.error("Элемент с id 'requestTable' не найден.");
+        return;
+    }
+
+    requestTable.innerHTML = "";
+
+    if (requests.length === 0) {
+        requestTable.innerHTML = "<div class='table-row'>Нет заявок</div>";
+        return;
+    }
+
+    requests.forEach(request => {
+        const row = document.createElement('div');
+        row.className = 'table-row';
+        row.innerHTML = `
+            <div class="table-cell">${request.user_name}</div>
+            <div class="table-cell">${request.item_name}</div>
+            <div class="table-cell">${request.quantity}</div>
+            <div class="table-cell">
+                <select class="status-select" data-request-id="${request.id}">
+                    <option value="В обработке" ${request.status === "В обработке" ? "selected" : ""}>В обработке</option>
+                    <option value="Одобрено" ${request.status === "Одобрено" ? "selected" : ""}>Одобрено</option>
+                    <option value="Отклонено" ${request.status === "Отклонено" ? "selected" : ""}>Отклонено</option>
+                </select>
+            </div>
+            <div class="table-cell">
+                <button class="update-status" data-request-id="${request.id}">Сохранить</button>
+            </div>
+        `;
+        requestTable.appendChild(row);
+    });
+
+    document.querySelectorAll(".update-status").forEach(button => {
+        button.addEventListener("click", function () {
+            const requestId = this.getAttribute("data-request-id");
+            const newStatus = document.querySelector(`.status-select[data-request-id="${requestId}"]`).value;
+            updateRequestStatus(requestId, newStatus);
+        });
+    });
+}
+async function updateRequestStatus(requestId, newStatus) {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/update-request-status', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                request_id: parseInt(requestId),
+                new_status: newStatus
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        alert("Статус заявки обновлён!");
+        fetchAllRequests();
+    } catch (error) {
+        console.error("Ошибка при обновлении статуса заявки:", error);
+        alert("Ошибка при обновлении статуса заявки.");
+    }
+}
+
+async function fetchAdminInfo() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const adminId = urlParams.get('user_id'); // ID админа из URL
+
+    if (!adminId) {
+        console.error("Ошибка: ID админа не найден.");
+        return;
+    }
+
+    try {
+        const response = await fetch(`http://127.0.0.1:8000/admin-info?user_id=${adminId}`);
+        if (!response.ok) {
+            throw new Error(`HTTP error! Status: ${response.status}`);
+        }
+
+        const data = await response.json();
+        document.getElementById('adminWelcome').textContent = `Добро пожаловать, ${data.first_name} ${data.last_name}`;
+    } catch (error) {
+        console.error("Ошибка загрузки данных админа:", error);
+        alert("Ошибка при загрузке информации об администраторе.");
+    }
+}
