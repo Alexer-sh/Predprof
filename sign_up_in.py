@@ -19,14 +19,14 @@ def serve_static(path):
 
 # Хранение данных (и так сойдёт)
 users = [
-    {"id": 0, "first_name": "Андрей", "last_name": "Денисов", "email": "admin@example.com", "password": "admin123", "role": "admin", "inventory": []},
-    {"id": 1, "first_name": "Алексей", "last_name": "Егоров", "email": "egorov@mail.ru", "password": "mephi", "role": "user", "inventory": []},
-    {"id": 2, "first_name": "Лариса", "last_name": "Беликова", "email": "user@example.com", "password": "user123", "role": "user", "inventory": []}
+    {"id": 0, "first_name": "Андрей", "last_name": "Денисов", "email": "admin@example.com", "password": "admin123", "role": "admin", "inventory": []}
+   # {"id": 1, "first_name": "Алексей", "last_name": "Егоров", "email": "egorov@mail.ru", "password": "mephi", "role": "user", "inventory": []},
+   # {"id": 2, "first_name": "Лариса", "last_name": "Беликова", "email": "user@example.com", "password": "user123", "role": "user", "inventory": []}
 ]
 purchase_requests = []
 free_inventory = [
-    {"id": 1, "name": "Мячи", "quantity": 10, "condition": "Новый"},
-    {"id": 2, "name": "Ракетки", "quantity": 5, "condition": "Б/У"}
+  #  {"id": 1, "name": "Мячи", "quantity": 10, "condition": "Новый"},
+    #{"id": 2, "name": "Ракетки", "quantity": 5, "condition": "Б/У"}
 ]
 requests = []
 # Маршруты
@@ -351,6 +351,25 @@ def get_admin_info():
         "last_name": user["last_name"]
     })
 
+@app.route('/update-free-inventory', methods=['POST'])
+def update_free_inventory():
+    data = request.json
+    item_id = data.get("item_id")
+    new_quantity = data.get("quantity")
+    new_condition = data.get("condition")
+
+    if item_id is None or new_quantity is None or new_condition not in ["Новый", "Б/У", "Требует ремонта"]:
+        return jsonify({"error": "Неверные данные"}), 400
+
+    item = next((i for i in free_inventory if i["id"] == int(item_id)), None)
+    if not item:
+        return jsonify({"error": "Предмет не найден"}), 404
+
+    for item in free_inventory:
+        if item["id"] == int(item_id):
+            item["quantity"] = new_quantity
+            item["condition"] = new_condition
+            return jsonify({"message": "Инвентарь обновлён"}), 200
 
 if __name__ == "__main__":
     app.run(host="127.0.0.1", port=8000)

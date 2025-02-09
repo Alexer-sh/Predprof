@@ -372,7 +372,6 @@ async function fetchFreeInventory() {
     }
 }
 
-// Отображение списка свободного инвентаря
 function renderInventoryList(inventory) {
     const inventoryList = document.getElementById("inventoryList");
     inventoryList.innerHTML = "";
@@ -382,12 +381,20 @@ function renderInventoryList(inventory) {
         inventoryItem.className = "inventory-item";
         inventoryItem.setAttribute("data-id", item.id);
         inventoryItem.innerHTML = `
-            <span>${item.name} (Остаток: ${item.quantity}, Состояние: ${item.condition})</span>
+            <span>${item.name}</span>
+            <input type="number" min="0" value="${item.quantity}" class="inventory-quantity" data-id="${item.id}">
+            <select class="inventory-condition" data-id="${item.id}">
+                <option value="Новый" ${item.condition === "Новый" ? "selected" : ""}>Новый</option>
+                <option value="Б/У" ${item.condition === "Б/У" ? "selected" : ""}>Б/У</option>
+                <option value="Требует ремонта" ${item.condition === "Требует ремонта" ? "selected" : ""}>Требует ремонта</option>
+            </select>
+            <span class="save-button" onclick="updateInventory(${item.id})">Сохранить</span>
             <span class="delete-button" onclick="deleteInventory(${item.id})">Удалить</span>
         `;
         inventoryList.appendChild(inventoryItem);
     });
 }
+
 
 async function addInventory() {
     const inventoryName = document.getElementById("inventoryName").value;
@@ -652,3 +659,35 @@ async function fetchAdminInfo() {
         alert("Ошибка при загрузке информации об администраторе.");
     }
 }
+async function updateInventory(itemId) {
+    const newQuantity = document.querySelector(`.inventory-quantity[data-id="${itemId}"]`).value;
+    const newCondition = document.querySelector(`.inventory-condition[data-id="${itemId}"]`).value;
+
+    if (newQuantity < 0) {
+        alert("Количество не может быть отрицательным!");
+        return;
+    }
+
+    try {
+        const response = await fetch("http://127.0.0.1:8000/update-free-inventory", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                item_id: itemId,
+                quantity: parseInt(newQuantity),
+                condition: newCondition
+            }),
+        });
+
+        if (!response.ok) {
+            throw new Error(`Ошибка HTTP: ${response.status}`);
+        }
+
+        alert("Инвентарь обновлён!");
+        fetchFreeInventory();
+    } catch (error) {
+        console.error("Ошибка при обновлении инвентаря:", error);
+        alert("Ошибка при обновлении инвентаря.");
+    }
+}
+

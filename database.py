@@ -125,3 +125,4 @@ def update_inventory_condition(email, item_name, new_condition):
     conn.commit()
     conn.close()
     return True
+
