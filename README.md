@@ -14,3 +14,4 @@ http://localhost:8000/auth.html
 Готово!
 
 Ссылка на видеоролик с примером работы с веб-приложением:
+https://rutube.ru/video/private/f6ae94618e2e3e51cca7995cc3618be9/?p=QqnTYGCCYEO3yRpwL0dntA
